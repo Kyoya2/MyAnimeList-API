@@ -57,37 +57,38 @@ def get_anime_character_list(anime_url: str):
     if len(soup.select('table > tr > td > div')) == 0:
         return (True, None)
     
-    # Create a list that contains HTML data about each characterentries 
-    characters_data = soup.select('table > tr > td > div > table > tr')
-    
+    # Create a list that contains HTML data about each character
+    #characters_data = soup.select('table > tr > td > div > table > tr')
+    characters_data = soup.select('table.js-anime-character-table > tr')
+
     result = []
     for character_row in characters_data:
         # The CSS Selector for the character list will also select the staff because
         # they appear in the same format at the bottom, so if we see that a 'character'
         # has no voice actors panel, it means that we reached the staff and we need to stop.
-        voice_actors_container_data = character_row.select('td:nth-of-type(3) > table')
+        voice_actors_data = character_row.select('td:nth-of-type(3) > table > tr > td:nth-of-type(1)')
         
-        if len(voice_actors_container_data) == 0:
-            break
-        
-        # Extract voice actors data
-        voice_actors = voice_actors_container_data[0].select('tr > td:nth-of-type(1)')
         character_voice_actors = []
-        
-        # Parse each voice actor for this character
-        for voice_actor in voice_actors:
-            character_voice_actors.append({
-                'name'     : voice_actor.a.contents[0],
-                'language' : voice_actor.small.contents[0],
-                'id': __get_person_id_from_url(voice_actor.a['href'])
-            })
+        if len(voice_actors_data) > 0:
+            # Parse each voice actor for this character
+            for voice_actor in voice_actors_data:
+                name, language = voice_actor.select('div')
+                character_voice_actors.append({
+                    'name'     : name.a.contents[0].strip(),
+                    'language' : language.contents[0].strip(),
+                    'id': __get_person_id_from_url(name.a['href'].strip())
+                })
 
         # Parse character data
         character_data = character_row.select('td:nth-of-type(2)')[0]
         
-        character_is_main_role = character_data.div.small.contents[0].lower() == 'main'
-        character_name = character_data.a.contents[0]
-        character_link = character_data.a['href']
+        character_role, character_name = character_data.select('div.js-chara-roll-and-name')[0].contents[0].strip().split('_', 1)
+        if character_role not in ('m', 's'):
+            raise Exception(f'Unrecognized character role "{character_role}"')
+
+        character_is_main_role = character_role == 'm'
+        character_name = character_name
+        character_link = character_data.select('div:nth-of-type(3)')[0].a['href'].strip()
         character_id = __get_character_id_from_url(character_link)
 
         # Get the link to the image with the highest quality
