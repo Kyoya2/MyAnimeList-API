@@ -54,12 +54,12 @@ def get_anime_character_list(anime_url: str):
     soup = BeautifulSoup(response_html, features='lxml')
 
     # If the page doesn't containg the expected content, assume that the IP was suspended
-    if len(soup.select('table > tr > td > div')) == 0:
+    character_container = soup.select('body > div#myanimelist > div.wrapper > div#contentWrapper > div#content > table > tr > td:nth-of-type(2)')
+    if len(character_container) == 0:
         return (True, None)
     
     # Create a list that contains HTML data about each character
-    #characters_data = soup.select('table > tr > td > div > table > tr')
-    characters_data = soup.select('table.js-anime-character-table > tr')
+    characters_data = character_container[0].select('div.js-scrollfix-bottom-rel > div.anime-character-container > table.js-anime-character-table > tr')
 
     result = []
     for character_row in characters_data:
