@@ -2,38 +2,62 @@ import requests
 from bs4 import BeautifulSoup
 import json
 from mal_common import *
+from time import ctime
 from datetime import datetime
+from os.path import dirname, join
 
-# Get a list of 'AnimeListEntry' according to the list type
+
+CACHE_DIRECTORY = join(dirname(__file__), 'cache')
+
+
+class EntryContainer:
+    def __init__(self, d):
+        self._dict = d
+        for k, v in d.items():
+            setattr(self, k, v)
+    def __repr__(self):
+        return repr(self._dict)
+
+
+# Get a list of entries according to the list type
 # see AnimeListType for possible 'list_type' values
-def get_user_anime_list(mal_user_name: str, list_type: int) -> list:
+def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None, secondary_sort_order=None) -> list:
+    # Generate MAL link from args
+    anime_list_link = MAL_BASE_URL + f'/animelist/{mal_user_name}?status={list_type}'
+    if main_sort_order is not None:
+        result += f'&order={main_sort_order}'
+    if secondary_sort_order is not None:
+        result += f'&order2={secondary_sort_order}'
+
     # Get HTML data of the anime list page
-    response_html = requests.get(
-        MAL_ALL_ANIME_LIST_LINK.format(
-            user_name = mal_user_name,
-            list_status = list_type)
-        ).content.decode("utf-8")
+    response_html = requests.get(anime_list_link).content.decode()
     
     # Parse html and extract table data
     soup = BeautifulSoup(response_html, features='lxml')
     json_data = json.loads(soup.select('#list-container > div.list-block > div > table')[0]['data-items'])
     
-    # Convert each entry to 'AnimeListEntry' and add it to the result list
+    # Reinterpret some fields as pythonic types for easier use
     result = []
-    for i, json_entry in enumerate(json_data):
-        result.append(AnimeListEntry(
-            status               = json_entry['status'],
-            score                = json_entry['score'],
-            user_tags            = str(json_entry['tags']).split(', '),
-            is_rewatching        = json_entry['is_rewatching'] == IS_REWATCHING,
-            num_watched_episodes = json_entry['num_watched_episodes'],
-            num_episodes         = json_entry['anime_num_episodes'],
-            title                = str(json_entry['anime_title']),
-            id                   = json_entry['anime_id'],
-            air_date             = json_entry['anime_start_date_string'],
-            url                  = json_entry['anime_url']
-        ))
-    
+    for json_entry in json_data:
+        # Date fields
+        for field_name in ('anime_start_date_string', 'anime_end_date_string'):
+            if json_entry[field_name] is not None:
+                json_entry[field_name] = datetime.strptime(json_entry[field_name], AIR_DATE_FORMAT)
+        
+        # Named entry lists
+        for field_name in ('genres', 'demographics'):
+            json_entry[field_name] = [entry['name'] for entry in json_entry[field_name]]
+        
+        # ctime entries
+        for field_name in ('created_at', 'updated_at'):
+            json_entry[field_name] = datetime.strptime(ctime(json_entry[field_name]), '%c')
+        
+        # Misc
+        json_entry['tags'] = json_entry['tags'].split(', ')
+        json_entry['is_rewatching'] = bool(json_entry['is_rewatching'])
+            
+        result.append(EntryContainer(json_entry))
+
     return result
 
 
@@ -47,10 +71,13 @@ def get_anime_character_list(anime_url: str):
     if result:
         # Make sure that the cache isn't empty or expired
         if (datetime.today() - datetime.strptime(result[0], CACHE_TIME_FORMAT)).days <= CACHE_LIFETIME_IN_DAYS:
-            return (False, result[1])
+            result  = [EntryContainer(entry) for entry in result[1]]
+            for entry in result:
+                entry.voice_actors = [EntryContainer(va) for va in entry.voice_actors]
+            return (False, result)
 
     # Get HTML data of the characters list page
-    response_html = requests.get(MAL_BASE_URL + anime_url + '/characters').content.decode("utf-8")
+    response_html = requests.get(MAL_BASE_URL + anime_url + '/characters').content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
 
     # If the page doesn't containg the expected content, assume that the IP was suspended
@@ -73,11 +100,11 @@ def get_anime_character_list(anime_url: str):
             # Parse each voice actor for this character
             for voice_actor in voice_actors_data:
                 name, language = voice_actor.select('div')
-                character_voice_actors.append({
+                character_voice_actors.append(EntryContainer({
                     'name'     : name.a.contents[0].strip(),
                     'language' : language.contents[0].strip(),
                     'id': __get_person_id_from_url(name.a['href'].strip())
-                })
+                }))
 
         # Parse character data
         character_data = character_row.select('td:nth-of-type(2)')[0]
@@ -100,13 +127,13 @@ def get_anime_character_list(anime_url: str):
         if len(character_voice_actors) == 0:
             character_voice_actors = get_character_voice_actors(character_id)
         
-        result.append({
+        result.append(EntryContainer({
             'name'              : character_name,
             'is_main_character' : character_is_main_role,
             'id'                : character_id,
             'image_link'        : larges_character_image_link,
             'voice_actors'      : character_voice_actors
-        })
+        }))
 
     __write_characters_list_to_cache(result, anime_url)
     
@@ -114,7 +141,7 @@ def get_anime_character_list(anime_url: str):
 
 
 def get_character_voice_actors(character_id) -> list:
-    response_html = requests.get(MAL_CHARACTER_URL_PREFIX + str(character_id)).content.decode("utf-8")
+    response_html = requests.get(MAL_CHARACTER_URL_PREFIX + str(character_id)).content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
 
     voice_actors = []
@@ -122,11 +149,11 @@ def get_character_voice_actors(character_id) -> list:
     voice_actors_data = soup.select('#content > table:nth-of-type(1) > tr:nth-of-type(1) > td:nth-of-type(2) > table > tr > td:nth-of-type(2)')
     
     for voice_actor_data in voice_actors_data:
-        voice_actors.append({
+        voice_actors.append(EntryContainer({
             'name'     : voice_actor_data.a.contents[0],
             'language' : voice_actor_data.div.small.contents[0],
             'id'       : __get_person_id_from_url(voice_actor_data.a['href'])
-        })
+        }))
     
     return voice_actors
 
@@ -148,24 +175,28 @@ def __get_person_id_from_url(person_url: str) -> str:
 
 def __get_characters_list_from_cache(anime_url: str) -> list:
     try:
-        with open('.\\cache\\' + __get_anime_id_from_url(anime_url), 'r') as cache_file:
+        with open(join(CACHE_DIRECTORY, __get_anime_id_from_url(anime_url) + '.json'), 'r', encoding='utf8') as cache_file:
             return json.load(cache_file)
     except FileNotFoundError:
         return None
 
 
 def __write_characters_list_to_cache(characters_list: list, anime_url: str):
-    with open('.\\cache\\' + __get_anime_id_from_url(anime_url), 'w') as cache_file:
-        return json.dump((datetime.today().strftime(CACHE_TIME_FORMAT), characters_list), cache_file)
+    with open(join(CACHE_DIRECTORY, __get_anime_id_from_url(anime_url) + '.json'), 'w', encoding='utf8') as cache_file:
+
+        serializable_list = [entry._dict for entry in characters_list]
+        for entry in serializable_list:
+            entry['voice_actors'] = [va._dict for va in entry['voice_actors']]
+
+        json.dump((datetime.today().strftime(CACHE_TIME_FORMAT), serializable_list), cache_file)
 
 
 def main():
-    #/anime/31964/Boku_no_Hero_Academia
-    #for e in (get_user_anime_list('Kyoya2', AnimeListType.AllAnime)):
-    #    print(e)
+    for e in (get_user_anime_list('Zugolom', AnimeListType.AllAnime)):
+        print(e.anime_title)
     
-    for e in get_anime_character_list('/anime/37515/Made_in_Abyss_Movie_2__Hourou_Suru_Tasogare'):
-        print(repr(e) + '\n')
+    #for e in get_anime_character_list('/anime/37515/Made_in_Abyss_Movie_2__Hourou_Suru_Tasogare'):
+    #    print(e.title_localized)
 
 
 if __name__ == '__main__':
