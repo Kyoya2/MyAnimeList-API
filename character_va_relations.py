@@ -1,4 +1,4 @@
-from mal_base import get_user_anime_list, get_anime_character_list
+from mal_base import get_user_anime_list, get_anime_character_list, AnimeListSortBy
 from mal_common import AnimeListType, AnimeStatus, MAL_CHARACTER_URL_PREFIX
 from time import sleep
 from collections import namedtuple
@@ -131,13 +131,14 @@ def generate_va_relationships(mal_username, output_path, open_result_file=False)
         )
             
     # Writing result to file
-    with open('template.html', 'r') as template_file:
+    with open('character_va_relationship_template.html') as template_file:
         html_template = template_file.read()
 
     with open(output_path, 'w', encoding='utf8') as output_file:
         output_file.write(html_template.replace('{CONTENT_PLACEHOLDER}', html_rows))
     
-    system(f'start "" "{output_path}"')
+    if open_result_file:
+        system(f'start "" "{output_path}"')
 
 
 if __name__ == '__main__':

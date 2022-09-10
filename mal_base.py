@@ -25,9 +25,9 @@ def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None
     # Generate MAL link from args
     anime_list_link = MAL_BASE_URL + f'/animelist/{mal_user_name}?status={list_type}'
     if main_sort_order is not None:
-        result += f'&order={main_sort_order}'
+        anime_list_link += f'&order={main_sort_order}'
     if secondary_sort_order is not None:
-        result += f'&order2={secondary_sort_order}'
+        anime_list_link += f'&order2={secondary_sort_order}'
 
     # Get HTML data of the anime list page
     response_html = requests.get(anime_list_link).content.decode()
