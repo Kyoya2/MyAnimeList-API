@@ -1,12 +1,21 @@
 from collections import namedtuple
 
-# Constants
+
 MAL_BASE_URL = 'https://myanimelist.net'
 MAL_ALL_ANIME_LIST_LINK = MAL_BASE_URL + '/animelist/{user_name}?status={list_status}&order=-14'
 MAL_CHARACTER_URL_PREFIX = 'https://myanimelist.net/character/'
 CACHE_LIFETIME_IN_DAYS = 100
 CACHE_TIME_FORMAT = '%d/%m/%Y'
 AIR_DATE_FORMAT = '%d-%m-%y'
+
+
+class EntryContainer:
+    def __init__(self, d):
+        self._dict = d
+        for k, v in d.items():
+            setattr(self, k, v)
+    def __repr__(self):
+        return repr(self._dict)
 
 
 class AnimeStatus:

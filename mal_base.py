@@ -10,15 +10,6 @@ from os.path import dirname, join
 CACHE_DIRECTORY = join(dirname(__file__), 'cache')
 
 
-class EntryContainer:
-    def __init__(self, d):
-        self._dict = d
-        for k, v in d.items():
-            setattr(self, k, v)
-    def __repr__(self):
-        return repr(self._dict)
-
-
 # Get a list of entries according to the list type
 # see AnimeListType for possible 'list_type' values
 def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None, secondary_sort_order=None) -> list:
