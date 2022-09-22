@@ -2,8 +2,8 @@ from collections import namedtuple
 
 
 MAL_BASE_URL = 'https://myanimelist.net'
-MAL_ALL_ANIME_LIST_LINK = MAL_BASE_URL + '/animelist/{user_name}?status={list_status}&order=-14'
-MAL_CHARACTER_URL_PREFIX = 'https://myanimelist.net/character/'
+MAL_ANIME_URL_PREFIX = MAL_BASE_URL + '/anime/'
+MAL_CHARACTER_URL_PREFIX = MAL_BASE_URL + '/character/'
 CACHE_LIFETIME_IN_DAYS = 100
 CACHE_TIME_FORMAT = '%d/%m/%Y'
 AIR_DATE_FORMAT = '%d-%m-%y'
