@@ -1,9 +1,10 @@
+import re
+import json
 import requests
 from bs4 import BeautifulSoup
-import json
 from mal_common import *
 from time import ctime
-from datetime import datetime
+from datetime import datetime, timedelta
 from os.path import dirname, join
 
 
@@ -149,6 +150,23 @@ def get_character_voice_actors(character_id) -> list:
     return voice_actors
 
 
+ANIME_DURATION_REGEX = re.compile('(?:(\d+) hr.)? ?(?:(\d+) min.)?')
+def get_anime_duration(anime_id) -> timedelta:
+    response_html = requests.get(MAL_ANIME_URL_PREFIX + str(anime_id)).content.decode()
+    soup = BeautifulSoup(response_html, features='lxml')
+
+    attributes = soup.select('div.spaceit_pad')
+    for attr in attributes:
+        if attr.span and attr.span.contents[0] == 'Duration:':
+            duration_str = list(attr.children)[-1].strip()
+    
+    match = ANIME_DURATION_REGEX.search(duration_str)
+    return timedelta(
+        hours   = int(match[1] or 0),
+        minutes = int(match[2] or 0)
+    )
+
+
 def __get_anime_id_from_url(anime_url: str) -> str:
     parts = anime_url.split('/')
     return parts[parts.index('anime') + 1]
@@ -183,8 +201,7 @@ def __write_characters_list_to_cache(characters_list: list, anime_url: str):
 
 
 def main():
-    for e in (get_user_anime_list('Zugolom', AnimeListType.AllAnime)):
-        print(e.anime_title)
+    print(get_anime_duration(3785))
     
     #for e in get_anime_character_list('/anime/37515/Made_in_Abyss_Movie_2__Hourou_Suru_Tasogare'):
     #    print(e.title_localized)
