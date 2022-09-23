@@ -29,7 +29,7 @@ def format_html_string_width(string: str, line_length: int) -> str:
 
         result += word + ' '
         current_line_length += len(word) + 1
-    
+
     return result[:-1]
 
 
@@ -85,19 +85,19 @@ def generate_va_relationships(mal_username, output_path, open_result_file=False)
 
         if request_sent:
             sleep(ANIME_GET_INTRERVAL)
-    
+
     # We don't care about the voice actors themselves so we make a list of lists:
     # [[characters voiced by voice actor 1], [characters voiced by voice actor 2], ...]
     rows_data = list(voice_actor_characters.values())
     del voice_actor_characters
-    
+
     # Sorting each row by the following priorities
     # 1) Anime status priority order: Completed > Watching > On-hold > Dropped
     # 2) Is main character
     for characters in rows_data:
         characters.sort(key=(lambda item : item.is_main_character), reverse=True)
         characters.sort(key=(lambda item : CHARACTER_TYPE_SORT_ORDER.index(item.anime_status)))
-    
+
     # Sorting all rows by the following priorities
     # 1) Number of characters
     # 2) Number of main characters
@@ -129,14 +129,14 @@ def generate_va_relationships(mal_username, output_path, open_result_file=False)
             character_name_cells = character_name_cells,
             character_image_cells = character_image_cells
         )
-            
+
     # Writing result to file
     with open('character_va_relationship_template.html') as template_file:
         html_template = template_file.read()
 
     with open(output_path, 'w', encoding='utf8') as output_file:
         output_file.write(html_template.replace('{CONTENT_PLACEHOLDER}', html_rows))
-    
+
     if open_result_file:
         system(f'start "" "{output_path}"')
 

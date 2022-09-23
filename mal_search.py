@@ -28,7 +28,7 @@ def search_anime(query):
         num_episodes = 0 if num_episodes=='-' else str_to_int(num_episodes)
         score = 0 if score=='N/A' else float(score)
         num_users = str_to_int(num_users)
-        
+
         results.append(EntryContainer({
             'title': title,
             'id': anime_id,
@@ -39,7 +39,7 @@ def search_anime(query):
             'end_date': end_date,
             'num_users': num_users,
             'rating': rating}))
-    
+
     return results
 
 

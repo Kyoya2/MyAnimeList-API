@@ -23,11 +23,11 @@ def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None
 
     # Get HTML data of the anime list page
     response_html = requests.get(anime_list_link).content.decode()
-    
+
     # Parse html and extract table data
     soup = BeautifulSoup(response_html, features='lxml')
     json_data = json.loads(soup.select('#list-container > div.list-block > div > table')[0]['data-items'])
-    
+
     # Reinterpret some fields as pythonic types for easier use
     result = []
     for json_entry in json_data:
@@ -35,19 +35,19 @@ def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None
         for field_name in ('anime_start_date_string', 'anime_end_date_string'):
             if json_entry[field_name] is not None:
                 json_entry[field_name] = datetime.strptime(json_entry[field_name], AIR_DATE_FORMAT)
-        
+
         # Named entry lists
         for field_name in ('genres', 'demographics'):
             json_entry[field_name] = [entry['name'] for entry in json_entry[field_name]]
-        
+
         # ctime entries
         for field_name in ('created_at', 'updated_at'):
             json_entry[field_name] = datetime.strptime(ctime(json_entry[field_name]), '%c')
-        
+
         # Misc
         json_entry['tags'] = json_entry['tags'].split(', ')
         json_entry['is_rewatching'] = bool(json_entry['is_rewatching'])
-            
+
         result.append(EntryContainer(json_entry))
 
     return result
@@ -76,7 +76,7 @@ def get_anime_character_list(anime_url: str):
     character_container = soup.select('body > div#myanimelist > div.wrapper > div#contentWrapper > div#content > table > tr > td:nth-of-type(2)')
     if len(character_container) == 0:
         return (True, None)
-    
+
     # Create a list that contains HTML data about each character
     characters_data = character_container[0].select('div.js-scrollfix-bottom-rel > div.anime-character-container > table.js-anime-character-table > tr')
 
@@ -86,7 +86,7 @@ def get_anime_character_list(anime_url: str):
         # they appear in the same format at the bottom, so if we see that a 'character'
         # has no voice actors panel, it means that we reached the staff and we need to stop.
         voice_actors_data = character_row.select('td:nth-of-type(3) > table > tr > td:nth-of-type(1)')
-        
+
         character_voice_actors = []
         if len(voice_actors_data) > 0:
             # Parse each voice actor for this character
@@ -100,7 +100,7 @@ def get_anime_character_list(anime_url: str):
 
         # Parse character data
         character_data = character_row.select('td:nth-of-type(2)')[0]
-        
+
         character_role, character_name = character_data.select('div.js-chara-roll-and-name')[0].contents[0].strip().split('_', 1)
         if character_role not in ('m', 's'):
             raise Exception(f'Unrecognized character role "{character_role}"')
@@ -118,7 +118,7 @@ def get_anime_character_list(anime_url: str):
         # we need to explicitly get the voice actors from that characters' page
         if len(character_voice_actors) == 0:
             character_voice_actors = get_character_voice_actors(character_id)
-        
+
         result.append(EntryContainer({
             'name'              : character_name,
             'is_main_character' : character_is_main_role,
@@ -128,7 +128,7 @@ def get_anime_character_list(anime_url: str):
         }))
 
     __write_characters_list_to_cache(result, anime_url)
-    
+
     return (True, result)
 
 
@@ -137,16 +137,16 @@ def get_character_voice_actors(character_id) -> list:
     soup = BeautifulSoup(response_html, features='lxml')
 
     voice_actors = []
-    
+
     voice_actors_data = soup.select('#content > table:nth-of-type(1) > tr:nth-of-type(1) > td:nth-of-type(2) > table > tr > td:nth-of-type(2)')
-    
+
     for voice_actor_data in voice_actors_data:
         voice_actors.append(EntryContainer({
             'name'     : voice_actor_data.a.contents[0],
             'language' : voice_actor_data.div.small.contents[0],
             'id'       : __get_person_id_from_url(voice_actor_data.a['href'])
         }))
-    
+
     return voice_actors
 
 
@@ -159,7 +159,7 @@ def get_anime_duration(anime_id) -> timedelta:
     for attr in attributes:
         if attr.span and attr.span.contents[0] == 'Duration:':
             duration_str = list(attr.children)[-1].strip()
-    
+
     match = ANIME_DURATION_REGEX.search(duration_str)
     return timedelta(
         hours   = int(match[1] or 0),
@@ -202,7 +202,7 @@ def __write_characters_list_to_cache(characters_list: list, anime_url: str):
 
 def main():
     print(get_anime_duration(3785))
-    
+
     #for e in get_anime_character_list('/anime/37515/Made_in_Abyss_Movie_2__Hourou_Suru_Tasogare'):
     #    print(e.title_localized)
 

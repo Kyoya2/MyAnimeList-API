@@ -15,10 +15,10 @@ class MyAnimeListUser:
         else:
             with open(self._tokens_file_path) as f:
                 self._update_tokens(json.load(f), save_to_file=False)
-    
+
     def get_user_info(self):
         return self._send_authenticated_request('GET', 'users/@me')
-    
+
     def update_anime_episode_count(self, anime_id, new_episode_count):
         return self._send_authenticated_request(
             'PATCH',
@@ -26,7 +26,7 @@ class MyAnimeListUser:
             data=f'num_watched_episodes={new_episode_count}',
             headers={'Content-Type': 'application/x-www-form-urlencoded'}
         )
-    
+
     def _generate_tokens(self):
         challenge = secrets.token_urlsafe(100)[:128]
         print('Go to', f'https://myanimelist.net/v1/oauth2/authorize?response_type=code&client_id={self._client_id}&code_challenge={challenge}')
@@ -46,7 +46,7 @@ class MyAnimeListUser:
         )
         response.raise_for_status()
         self._update_tokens(response.json())
-    
+
     def _refresh_tokens(self):
         response = requests.post(
             'https://myanimelist.net/v1/oauth2/token', 
@@ -58,7 +58,7 @@ class MyAnimeListUser:
         )
         response.raise_for_status()
         self._update_tokens(response.json())
-        
+
     def _update_tokens(self, tokens_response, *, save_to_file=True):
         self._access_token = tokens_response['access_token']
         self._refresh_token = tokens_response['refresh_token']
@@ -67,7 +67,7 @@ class MyAnimeListUser:
         if save_to_file:
             with open(self._tokens_file_path, 'w') as f:
                 json.dump(tokens_response, f, indent=4)
-    
+
     def _send_authenticated_request(self, request_method, url, headers=None, json=None, data=None):
         request_headers = {'Authorization': f'Bearer {self._access_token}'}
         if headers:
