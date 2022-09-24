@@ -31,7 +31,7 @@ class MyAnimeListUser:
         challenge = secrets.token_urlsafe(100)[:128]
         print('Go to', f'https://myanimelist.net/v1/oauth2/authorize?response_type=code&client_id={self._client_id}&code_challenge={challenge}')
         auth_code = input('Enter authorization code or URL: ').strip()
-        match = re.match('https?://localhost/Kyoya2/MAL-VLC/oauth\?code=([^&]+)', auth_code)
+        match = re.search(r'[?&]code=([^&]+)', auth_code)
         if match:
             auth_code = match[1]
 
