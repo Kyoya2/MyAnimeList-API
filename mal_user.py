@@ -52,7 +52,7 @@ class MyAnimeListUser:
             'https://myanimelist.net/v1/oauth2/token', 
             {
                 'client_id': self._client_id,
-                'grant_type':'refresh_token',
+                'grant_type': 'refresh_token',
                 'refresh_token': self._refresh_token
             }
         )
