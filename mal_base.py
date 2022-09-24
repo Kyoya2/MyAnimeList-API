@@ -150,21 +150,55 @@ def get_character_voice_actors(character_id) -> list:
     return voice_actors
 
 
-ANIME_DURATION_REGEX = re.compile('(?:(\d+) hr.)? ?(?:(\d+) min.)?')
-def get_anime_duration(anime_id) -> timedelta:
+ANIME_DURATION_REGEX = re.compile(r'(?:(\d+) hr.)? ?(?:(\d+) min.)?')
+def get_anime_details(anime_id) -> timedelta:
     response_html = requests.get(MAL_ANIME_URL_PREFIX + str(anime_id)).content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
 
     attributes = soup.select('div.spaceit_pad')
+    attr_dict = {}
     for attr in attributes:
-        if attr.span and attr.span.contents[0] == 'Duration:':
-            duration_str = list(attr.children)[-1].strip()
+        attr_span = attr.select('div > span')
+        attr_a = attr.select('div > a')
 
-    match = ANIME_DURATION_REGEX.search(duration_str)
-    return timedelta(
-        hours   = int(match[1] or 0),
-        minutes = int(match[2] or 0)
-    )
+        attr_name = attr_span[0].contents[0].strip(':').lower().replace(' ', '_')
+
+        # Categorize types of attributes
+        if attr_a:
+            # Link group category
+            attr_value = [a.contents[0] for a in attr_a]
+            if attr_name == 'type':
+                attr_value = attr_value[0]
+
+        elif len(attr_span) > 1:
+            # Span value category
+            attr_value = attr_span[1].contents[0]
+
+        else:
+            # Direct sibling value category
+            attr_value = attr_span[0].next_sibling.strip()
+
+            # Interpret duration as timedelta
+            if attr_name == 'duration':
+                duration_str = match = ANIME_DURATION_REGEX.search(attr_value)
+                attr_value = timedelta(
+                    hours   = int(match[1] or 0),
+                    minutes = int(match[2] or 0)
+                )
+            elif attr_name == 'synonyms':
+                attr_value = attr_value.split(', ')
+
+        # Convert numerical attributes to floats
+        if attr_name in ('episodes', 'score', 'members', 'favorites'):
+            attr_value = float(attr_value.replace(',', ''))
+
+        attr_dict[attr_name] = attr_value
+
+        # This is the last relevant entry
+        if attr_name == 'favorites':
+            break
+
+    return EntryContainer(attr_dict)
 
 
 def __get_anime_id_from_url(anime_url: str) -> str:
@@ -201,7 +235,7 @@ def __write_characters_list_to_cache(characters_list: list, anime_url: str):
 
 
 def main():
-    print(get_anime_duration(3785))
+    print(get_anime_details(10161))
 
     #for e in get_anime_character_list('/anime/37515/Made_in_Abyss_Movie_2__Hourou_Suru_Tasogare'):
     #    print(e.title_localized)
