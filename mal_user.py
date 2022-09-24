@@ -68,16 +68,16 @@ class MyAnimeListUser:
             with open(self._tokens_file_path, 'w') as f:
                 json.dump(tokens_response, f, indent=4)
 
-    def _send_authenticated_request(self, request_method, url, headers=None, json=None, data=None):
+    def _send_authenticated_request(self, request_method, url, headers=None, json_data=None, data=None):
         request_headers = {'Authorization': f'Bearer {self._access_token}'}
         if headers:
             request_headers.update(headers)
-        r = requests.request(request_method, 'https://api.myanimelist.net/v2/'+url, headers=request_headers, json=json, data=data)
+        r = requests.request(request_method, 'https://api.myanimelist.net/v2/'+url, headers=request_headers, json=json_data, data=data)
 
         if r.status_code == 401 and r.json()['error'] == 'invalid_token':
             print('Token expired, refreshing')
             self._refresh_tokens()
-            return self._send_authenticated_request(request_method, url, json, data)
+            return self._send_authenticated_request(request_method, url, json_data, data)
 
         if not r.ok:
             print(r.content.decode())
