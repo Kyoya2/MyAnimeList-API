@@ -1,6 +1,3 @@
-from collections import namedtuple
-
-
 MAL_BASE_URL = 'https://myanimelist.net'
 MAL_ANIME_URL_PREFIX = MAL_BASE_URL + '/anime/'
 MAL_CHARACTER_URL_PREFIX = MAL_BASE_URL + '/character/'
@@ -14,6 +11,10 @@ class EntryContainer:
         self._dict = d
         for k, v in d.items():
             setattr(self, k, v)
+
+    def copy(self):
+        return EntryContainer(self._dict.copy())
+
     def __repr__(self):
         return repr(self._dict)
 
@@ -25,6 +26,7 @@ class AnimeStatus:
     Dropped     = 4
     PlanToWatch = 6
 
+
 class AnimeListType:
     Watching    = 1
     Completed   = 2
@@ -33,10 +35,12 @@ class AnimeListType:
     PlanToWatch = 6
     AllAnime    = 7
 
+
 class AnimeAiringStatus:
     Airing          = 1
     FinishedAiring  = 2
     NotAiredYet     = 3
+
 
 # Negate the value to get a reversed order
 class AnimeListSortBy:
@@ -54,6 +58,7 @@ class AnimeListSortBy:
     AirStartDate    = 14
     AirEndDate      = 15
     Status          = 16
+
 
 class CharacterRole:
     Main        = 0

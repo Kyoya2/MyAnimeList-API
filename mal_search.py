@@ -1,13 +1,13 @@
 import re
 import requests
 from bs4 import BeautifulSoup
-from datetime import datetime
 from mal_common import EntryContainer
 
 ANIME_SEARCH_URL = r'https://myanimelist.net/anime.php?cat=anime&c[]=a&c[]=b&c[]=c&c[]=d&c[]=e&c[]=f&c[]=g'
 
 link_to_id = lambda link: int(re.search(r'/anime/(\d+)/', link)[1])
 str_to_int = lambda s: int(s.replace(',', ''))
+
 
 def search_anime(query):
     response_html = requests.get(ANIME_SEARCH_URL, params={'q':query}).content.decode()
