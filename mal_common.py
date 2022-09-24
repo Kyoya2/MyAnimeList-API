@@ -6,17 +6,13 @@ CACHE_TIME_FORMAT = '%d/%m/%Y'
 AIR_DATE_FORMAT = '%d-%m-%y'
 
 
-class EntryContainer:
-    def __init__(self, d):
-        self._dict = d
-        for k, v in d.items():
-            setattr(self, k, v)
+class EntryContainer(dict):
+    __getattr__ = dict.get
+    __setattr__ = dict.__setitem__
+    __delattr__ = dict.__delitem__
 
     def copy(self):
-        return EntryContainer(self._dict.copy())
-
-    def __repr__(self):
-        return repr(self._dict)
+        return EntryContainer(super().copy())
 
 
 class AnimeStatus:
