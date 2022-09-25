@@ -10,7 +10,7 @@ link_to_id = lambda link: int(re.search(r'/anime/(\d+)/', link)[1])
 str_to_int = lambda s: int(s.replace(',', ''))
 
 
-def search_anime(query):
+def search_anime(query: str) -> list[EntryContainer]:
     with mal_request():
         response_html = requests.get(ANIME_SEARCH_URL, params={'q':query}).content.decode()
     soup = BeautifulSoup(response_html, features='lxml')

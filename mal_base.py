@@ -13,7 +13,7 @@ CACHE_DIRECTORY = join(dirname(__file__), 'cache')
 
 # Get a list of entries according to the list type
 # see AnimeListType for possible 'list_type' values
-def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None, secondary_sort_order=None) -> list:
+def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None, secondary_sort_order=None) -> list[EntryContainer]:
     # Generate MAL link from args
     anime_list_link = MAL_BASE_URL + f'/animelist/{mal_user_name}?status={list_type}'
     if main_sort_order is not None:
@@ -54,7 +54,7 @@ def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None
     return result
 
 
-def get_anime_character_list(anime_url: str):
+def get_anime_character_list(anime_url: str) -> list[EntryContainer]:
     """
     Return (request_sent: bool, character_list: list)
     request_sent is True when a request is sent to myanimelist.com
@@ -134,7 +134,7 @@ def get_anime_character_list(anime_url: str):
     return result
 
 
-def get_character_voice_actors(character_id) -> list:
+def get_character_voice_actors(character_id) -> list[EntryContainer]:
     with mal_request():
         response_html = requests.get(MAL_CHARACTER_URL_PREFIX + str(character_id)).content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
@@ -154,7 +154,7 @@ def get_character_voice_actors(character_id) -> list:
 
 
 ANIME_DURATION_REGEX = re.compile(r'^(?:(\d+) hr\.)? ?(?:(\d+) min\.)? ?(?:(\d+) sec\.)?')
-def get_anime_details(anime_id) -> timedelta:
+def get_anime_details(anime_id) -> EntryContainer:
     with mal_request():
         response_html = requests.get(MAL_ANIME_URL_PREFIX + str(anime_id)).content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
@@ -229,7 +229,7 @@ def __get_characters_list_from_cache(anime_url: str) -> list:
         return None
 
 
-def __write_characters_list_to_cache(characters_list: list, anime_url: str):
+def __write_characters_list_to_cache(characters_list: list, anime_url: str) -> None:
     with open(join(CACHE_DIRECTORY, __get_anime_id_from_url(anime_url) + '.json'), 'w', encoding='utf8') as cache_file:
         json.dump((datetime.today().strftime(CACHE_TIME_FORMAT), characters_list), cache_file)
 

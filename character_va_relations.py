@@ -31,7 +31,7 @@ def format_html_string_width(string: str, line_length: int) -> str:
     return result[:-1]
 
 
-def generate_va_relationships(mal_username, output_path, open_result_file=False):
+def generate_va_relationships(mal_username: str, output_path: str, open_result_file=False) -> None:
     print('Getting anime list')
     user_anime_list = get_user_anime_list(mal_username, AnimeListType.AllAnime, -AnimeListSortBy.AirStartDate)
 
