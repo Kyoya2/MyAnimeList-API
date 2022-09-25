@@ -35,27 +35,29 @@ class MyAnimeListUser:
         if match:
             auth_code = match[1]
 
-        response = requests.post(
-            'https://myanimelist.net/v1/oauth2/token', 
-            {
-                'client_id': self._client_id,
-                'code': auth_code,
-                'code_verifier': challenge,
-                'grant_type': 'authorization_code'
-            }
-        )
+        with mal_request():
+            response = requests.post(
+                'https://myanimelist.net/v1/oauth2/token',
+                {
+                    'client_id': self._client_id,
+                    'code': auth_code,
+                    'code_verifier': challenge,
+                    'grant_type': 'authorization_code'
+                }
+            )
         response.raise_for_status()
         self._update_tokens(response.json())
 
     def _refresh_tokens(self):
-        response = requests.post(
-            'https://myanimelist.net/v1/oauth2/token', 
-            {
-                'client_id': self._client_id,
-                'grant_type': 'refresh_token',
-                'refresh_token': self._refresh_token
-            }
-        )
+        with mal_request():
+            response = requests.post(
+                'https://myanimelist.net/v1/oauth2/token',
+                {
+                    'client_id': self._client_id,
+                    'grant_type': 'refresh_token',
+                    'refresh_token': self._refresh_token
+                }
+            )
         response.raise_for_status()
         self._update_tokens(response.json())
 
@@ -72,7 +74,8 @@ class MyAnimeListUser:
         request_headers = {'Authorization': f'Bearer {self._access_token}'}
         if headers:
             request_headers.update(headers)
-        r = requests.request(request_method, 'https://api.myanimelist.net/v2/'+url, headers=request_headers, json=json_data, data=data)
+        with mal_request():
+            r = requests.request(request_method, 'https://api.myanimelist.net/v2/'+url, headers=request_headers, json=json_data, data=data)
 
         if r.status_code == 401 and r.json()['error'] == 'invalid_token':
             print('Token expired, refreshing')

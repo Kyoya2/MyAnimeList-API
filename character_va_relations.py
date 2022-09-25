@@ -5,8 +5,6 @@ from collections import namedtuple
 from functools import reduce
 from os import system, path
 
-ANIME_GET_INTRERVAL = 3 # The lower this is, the higher the chance that MAL will suspend your IP temporarily
-RETRY_INTERVAL = 60 # The time (in seconds) to wait after MAL has suspended your IP
 VOICE_ACTOR_LANGUAGE = 'Japanese'
 CHARACTER_TYPE_SORT_ORDER = (AnimeStatus.Completed, AnimeStatus.Watching, AnimeStatus.OnHold, AnimeStatus.Dropped)
 
@@ -51,13 +49,7 @@ def generate_va_relationships(mal_username, output_path, open_result_file=False)
 
         print(anime.anime_title)
 
-        # Retry until successfully getting the character list of the current anime
-        while True:
-            request_sent, characters = get_anime_character_list(anime.anime_url)
-            if characters is not None:
-                break
-            else:
-                sleep(RETRY_INTERVAL)
+        characters = get_anime_character_list(anime.anime_url)
 
         for current_character in characters:
             if current_character.id not in character_anime_appearances:
@@ -83,10 +75,7 @@ def generate_va_relationships(mal_username, output_path, open_result_file=False)
 
             character_anime_appearances[current_character.id].append(anime.anime_title)
 
-        if request_sent:
-            sleep(ANIME_GET_INTRERVAL)
-
-    # We don't care about the voice actors themselves so we make a list of lists:
+    # We don't care about the voice actors themselves, so we make a list of lists:
     # [[characters voiced by voice actor 1], [characters voiced by voice actor 2], ...]
     rows_data = list(voice_actor_characters.values())
     del voice_actor_characters

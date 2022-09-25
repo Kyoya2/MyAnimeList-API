@@ -22,7 +22,8 @@ def get_user_anime_list(mal_user_name: str, list_type: int, main_sort_order=None
         anime_list_link += f'&order2={secondary_sort_order}'
 
     # Get HTML data of the anime list page
-    response_html = requests.get(anime_list_link).content.decode()
+    with mal_request():
+        response_html = requests.get(anime_list_link).content.decode()
 
     # Parse html and extract table data
     soup = BeautifulSoup(response_html, features='lxml')
@@ -66,16 +67,17 @@ def get_anime_character_list(anime_url: str):
             result  = [EntryContainer(entry) for entry in result[1]]
             for entry in result:
                 entry.voice_actors = [EntryContainer(va) for va in entry.voice_actors]
-            return (False, result)
+            return result
 
     # Get HTML data of the characters list page
-    response_html = requests.get(MAL_BASE_URL + anime_url + '/characters').content.decode()
+    with mal_request():
+        response_html = requests.get(MAL_BASE_URL + anime_url + '/characters').content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
 
-    # If the page doesn't containg the expected content, assume that the IP was suspended
+    # If the page doesn't contain the expected content, assume that the IP was suspended
     character_container = soup.select('body > div#myanimelist > div.wrapper > div#contentWrapper > div#content > table > tr > td:nth-of-type(2)')
     if len(character_container) == 0:
-        return (True, None)
+        return None
 
     # Create a list that contains HTML data about each character
     characters_data = character_container[0].select('div.js-scrollfix-bottom-rel > div.anime-character-container > table.js-anime-character-table > tr')
@@ -95,7 +97,7 @@ def get_anime_character_list(anime_url: str):
                 character_voice_actors.append(EntryContainer({
                     'name'     : name.a.contents[0].strip(),
                     'language' : language.contents[0].strip(),
-                    'id': __get_person_id_from_url(name.a['href'].strip())
+                    'id'        : __get_person_id_from_url(name.a['href'].strip())
                 }))
 
         # Parse character data
@@ -129,11 +131,12 @@ def get_anime_character_list(anime_url: str):
 
     __write_characters_list_to_cache(result, anime_url)
 
-    return (True, result)
+    return result
 
 
 def get_character_voice_actors(character_id) -> list:
-    response_html = requests.get(MAL_CHARACTER_URL_PREFIX + str(character_id)).content.decode()
+    with mal_request():
+        response_html = requests.get(MAL_CHARACTER_URL_PREFIX + str(character_id)).content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
 
     voice_actors = []
@@ -150,9 +153,10 @@ def get_character_voice_actors(character_id) -> list:
     return voice_actors
 
 
-ANIME_DURATION_REGEX = re.compile(r'(?:(\d+) hr.)? ?(?:(\d+) min.)?')
+ANIME_DURATION_REGEX = re.compile(r'^(?:(\d+) hr\.)? ?(?:(\d+) min\.)? ?(?:(\d+) sec\.)?')
 def get_anime_details(anime_id) -> timedelta:
-    response_html = requests.get(MAL_ANIME_URL_PREFIX + str(anime_id)).content.decode()
+    with mal_request():
+        response_html = requests.get(MAL_ANIME_URL_PREFIX + str(anime_id)).content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
 
     attributes = soup.select('div.spaceit_pad')
@@ -183,7 +187,8 @@ def get_anime_details(anime_id) -> timedelta:
                 duration_str = match = ANIME_DURATION_REGEX.search(attr_value)
                 attr_value = timedelta(
                     hours   = int(match[1] or 0),
-                    minutes = int(match[2] or 0)
+                    minutes = int(match[2] or 0),
+                    seconds = int(match[3] or 0)
                 )
             elif attr_name == 'synonyms':
                 attr_value = attr_value.split(', ')
@@ -226,16 +231,11 @@ def __get_characters_list_from_cache(anime_url: str) -> list:
 
 def __write_characters_list_to_cache(characters_list: list, anime_url: str):
     with open(join(CACHE_DIRECTORY, __get_anime_id_from_url(anime_url) + '.json'), 'w', encoding='utf8') as cache_file:
-
-        serializable_list = [entry._dict for entry in characters_list]
-        for entry in serializable_list:
-            entry['voice_actors'] = [va._dict for va in entry['voice_actors']]
-
-        json.dump((datetime.today().strftime(CACHE_TIME_FORMAT), serializable_list), cache_file)
+        json.dump((datetime.today().strftime(CACHE_TIME_FORMAT), characters_list), cache_file)
 
 
 def main():
-    print(get_anime_details(10161))
+    print(get_anime_details(17843))
 
     #for e in get_anime_character_list('/anime/37515/Made_in_Abyss_Movie_2__Hourou_Suru_Tasogare'):
     #    print(e.title_localized)

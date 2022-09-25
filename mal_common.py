@@ -1,9 +1,16 @@
+from contextlib import contextmanager
+from datetime import datetime
+from time import sleep
+
 MAL_BASE_URL = 'https://myanimelist.net'
 MAL_ANIME_URL_PREFIX = MAL_BASE_URL + '/anime/'
 MAL_CHARACTER_URL_PREFIX = MAL_BASE_URL + '/character/'
 CACHE_LIFETIME_IN_DAYS = 100
 CACHE_TIME_FORMAT = '%d/%m/%Y'
 AIR_DATE_FORMAT = '%d-%m-%y'
+MAL_REQUEST_INTERVAL = 3 # seconds
+
+__LAST_MAL_REQUEST_TIME = datetime.min
 
 
 class EntryContainer(dict):
@@ -13,6 +20,26 @@ class EntryContainer(dict):
 
     def copy(self):
         return EntryContainer(super().copy())
+
+
+@contextmanager
+def mal_request():
+    """
+    This context manager makes sure that there are at least MAL_REQUEST_INTERVAL
+    seconds between each request to avoid getting the IP suspended for request
+    flooding. Each request to MyAnimeList website should be made in a different
+    instance of this context manager.
+    """
+    global __LAST_MAL_REQUEST_TIME
+
+    time_delta = datetime.now() - __LAST_MAL_REQUEST_TIME
+    if time_delta.total_seconds() < MAL_REQUEST_INTERVAL:
+        sleep(MAL_REQUEST_INTERVAL - time_delta.total_seconds())
+
+    try:
+        yield
+    finally:
+        __LAST_MAL_REQUEST_TIME = datetime.now()
 
 
 class AnimeStatus:

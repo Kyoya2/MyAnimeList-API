@@ -2,6 +2,7 @@ import re
 import requests
 from bs4 import BeautifulSoup
 from mal_common import EntryContainer
+from mal_base import mal_request
 
 ANIME_SEARCH_URL = r'https://myanimelist.net/anime.php?cat=anime&c[]=a&c[]=b&c[]=c&c[]=d&c[]=e&c[]=f&c[]=g'
 
@@ -10,7 +11,8 @@ str_to_int = lambda s: int(s.replace(',', ''))
 
 
 def search_anime(query):
-    response_html = requests.get(ANIME_SEARCH_URL, params={'q':query}).content.decode()
+    with mal_request():
+        response_html = requests.get(ANIME_SEARCH_URL, params={'q':query}).content.decode()
     soup = BeautifulSoup(response_html, features='lxml')
     data = soup.select('.js-categories-seasonal > table:nth-child(1) > tr')[1:] # Skip first row (header row)
 
